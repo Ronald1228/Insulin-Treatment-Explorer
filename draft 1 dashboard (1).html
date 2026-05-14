@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Insulin Treatment Explorer</title>
+  <style>
+    /* ── RESET & BASE ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f0f4f8;
+      color: #1a2636;
+      min-height: 100vh;
+    }
+
+    /* ── COLOUR TOKENS ── */
+    :root {
+      --blue-dark:   #003087;
+      --blue-mid:    #0057b8;
+      --blue-light:  #e8f0fb;
+      --teal:        #007a7c;
+      --teal-light:  #e0f5f5;
+      --amber:       #f5a623;
+      --red-soft:    #c0392b;
+      --grey-1:      #f7f9fc;
+      --grey-2:      #e2e8f0;
+      --grey-3:      #94a3b8;
+      --white:       #ffffff;
+      --shadow:      0 2px 12px rgba(0,0,0,0.08);
+      --radius:      10px;
+    }
+
+    /* ── SCREENS ── */
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* ════════════════════════════════
+       SCREEN 1 — LANDING
+    ════════════════════════════════ */
+    #landing {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #003087 0%, #0057b8 60%, #007a7c 100%);
+      padding: 40px 20px;
+    }
+    .landing-card {
+      background: var(--white);
+      border-radius: 16px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+      padding: 48px 44px;
+      max-width: 620px;
+      width: 100%;
+    }
+    .landing-card h1 {
+      font-size: 1.9rem;
+      color: var(--blue-dark);
+      margin-bottom: 6px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    .landing-card .subtitle {
+      color: var(--grey-3);
+      font-size: 0.95rem;
+      margin-bottom: 36px;
+    }
+    .section-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--grey-3);
+      margin-bottom: 12px;
+    }
+    .type-buttons {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+    }
+    .type-btn {
+      flex: 1;
+      min-width: 130px;
+      padding: 18px 12px;
+      border: 2px solid var(--grey-2);
+      border-radius: var(--radius);
+      background: var(--grey-1);
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #334155;
+      transition: all 0.18s;
+      text-align: center;
+    }
+    .type-btn:hover, .type-btn.selected {
+      border-color: var(--blue-mid);
+      background: var(--blue-light);
+      color: var(--blue-dark);
+    }
+    .type-btn .big { font-size: 1.4rem; display: block; margin-bottom: 4px; }
+
+    .insulin-select-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .insulin-select-row select {
+      flex: 1;
+      padding: 11px 14px;
+      border: 2px solid var(--grey-2);
+      border-radius: var(--radius);
+      font-size: 0.95rem;
+      color: #334155;
+      background: var(--grey-1);
+      appearance: none;
+      cursor: pointer;
+    }
+    .insulin-select-row select:focus {
+      outline: none;
+      border-color: var(--blue-mid);
+    }
+    .quick-picks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 32px;
+    }
+    .quick-pick {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1.5px solid var(--grey-2);
+      background: var(--white);
+      font-size: 0.82rem;
+      cursor: pointer;
+      color: #475569;
+      transition: all 0.15s;
+    }
+    .quick-pick:hover, .quick-pick.selected {
+      border-color: var(--blue-mid);
+      background: var(--blue-light);
+      color: var(--blue-dark);
+    }
+    .btn-primary {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      background: var(--blue-mid);
+      color: var(--white);
+      border: none;
+      border-radius: var(--radius);
+      font-size: 1.05rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.18s;
+      letter-spacing: 0.3px;
+    }
+    .btn-primary:hover { background: var(--blue-dark); }
+
+    /* ════════════════════════════════
+       SHARED DASHBOARD SHELL
+    ════════════════════════════════ */
+    .dash-shell { display: flex; flex-direction: column; min-height: 100vh; }
+
+    /* Top bar */
+    .topbar {
+      background: var(--blue-dark);
+      color: var(--white);
+      padding: 0 28px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 16px; }
+    .back-btn {
+      background: rgba(255,255,255,0.12);
+      border: none;
+      color: var(--white);
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.88rem;
+      transition: background 0.15s;
+    }
+    .back-btn:hover { background: rgba(255,255,255,0.22); }
+    .topbar-title { font-weight: 700; font-size: 1rem; letter-spacing: 0.3px; }
+    .topbar-right { display: flex; gap: 10px; }
+    .topbar-btn {
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: var(--white);
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.82rem;
+    }
+    .topbar-btn:hover { background: rgba(255,255,255,0.20); }
+
+    /* Context strip */
+    .context-strip {
+      background: var(--blue-light);
+      border-bottom: 1px solid var(--grey-2);
+      padding: 10px 28px;
+      font-size: 0.84rem;
+      color: var(--blue-dark);
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .context-strip span { font-weight: 600; }
+    .context-pill {
+      background: var(--blue-mid);
+      color: var(--white);
+      border-radius: 12px;
+      padding: 2px 10px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    /* Filter bar */
+    .filter-bar {
+      background: var(--white);
+      border-bottom: 1px solid var(--grey-2);
+      padding: 16px 28px;
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 4px; }
+    .filter-group label { font-size: 0.72rem; font-weight: 700; color: var(--grey-3); text-transform: uppercase; letter-spacing: 0.8px; }
+    .filter-group select, .filter-group input[type=text] {
+      padding: 7px 12px;
+      border: 1.5px solid var(--grey-2);
+      border-radius: 7px;
+      font-size: 0.88rem;
+      color: #334155;
+      background: var(--grey-1);
+      min-width: 150px;
+    }
+    .filter-group select:focus { outline: none; border-color: var(--blue-mid); }
+    .radio-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding-top: 4px; }
+    .radio-row label { font-size: 0.85rem; display: flex; align-items: center; gap: 5px; cursor: pointer; color: #334155; }
+    .filter-bar .btn-update {
+      padding: 8px 20px;
+      background: var(--teal);
+      color: var(--white);
+      border: none;
+      border-radius: 7px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      align-self: flex-end;
+      margin-bottom: 1px;
+    }
+    .filter-bar .btn-update:hover { background: #005f60; }
+
+    /* Snapshot banner */
+    .snapshot {
+      background: var(--white);
+      border-bottom: 1px solid var(--grey-2);
+      padding: 14px 28px;
+      display: flex;
+      gap: 32px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .snap-item { display: flex; flex-direction: column; align-items: flex-start; }
+    .snap-value { font-size: 1.55rem; font-weight: 800; color: var(--blue-dark); line-height: 1; }
+    .snap-label { font-size: 0.72rem; color: var(--grey-3); text-transform: uppercase; letter-spacing: 0.7px; margin-top: 3px; }
+    .snap-divider { width: 1px; height: 40px; background: var(--grey-2); }
+
+    /* Tab nav */
+    .tab-nav {
+      background: var(--white);
+      border-bottom: 2px solid var(--grey-2);
+      padding: 0 28px;
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+    }
+    .tab-btn {
+      padding: 14px 20px;
+      border: none;
+      background: none;
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--grey-3);
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+    .tab-btn:hover { color: var(--blue-mid); }
+    .tab-btn.active { color: var(--blue-dark); border-bottom-color: var(--blue-mid); }
+
+    /* Tab panels */
+    .tab-panel { display: none; padding: 28px; background: var(--grey-1); min-height: 500px; }
+    .tab-panel.active { display: block; }
+
+    /* Cards */
+    .card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 22px 24px;
+    }
+    .card-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--grey-3);
+      margin-bottom: 16px;
+    }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 20px; }
+    @media (max-width: 768px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    }
+
+    /* Bar charts */
+    .bar-list { display: flex; flex-direction: column; gap: 10px; }
+    .bar-row { display: flex; align-items: center; gap: 10px; font-size: 0.86rem; }
+    .bar-row .bar-label { min-width: 160px; color: #334155; font-size: 0.83rem; }
+    .bar-row .bar-label.narrow { min-width: 80px; }
+    .bar-track { flex: 1; height: 18px; background: var(--grey-2); border-radius: 4px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 4px; background: var(--blue-mid); transition: width 0.6s ease; }
+    .bar-fill.teal  { background: var(--teal); }
+    .bar-fill.amber { background: var(--amber); }
+    .bar-fill.red   { background: #e57373; }
+    .bar-fill.green { background: #4caf50; }
+    .bar-pct { min-width: 40px; text-align: right; font-weight: 700; font-size: 0.84rem; color: var(--blue-dark); }
+
+    /* Map placeholder */
+    .map-placeholder {
+      background: var(--grey-1);
+      border: 2px dashed var(--grey-2);
+      border-radius: var(--radius);
+      height: 180px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--grey-3);
+      font-size: 0.88rem;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .map-placeholder .map-icon { font-size: 2rem; }
+
+    /* Region pills */
+    .region-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .region-pill {
+      background: var(--blue-light);
+      color: var(--blue-dark);
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-size: 0.84rem;
+      font-weight: 600;
+    }
+
+    /* Line chart placeholder */
+    .chart-placeholder {
+      background: var(--grey-1);
+      border: 2px dashed var(--grey-2);
+      border-radius: var(--radius);
+      height: 200px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--grey-3);
+      font-size: 0.88rem;
+      gap: 8px;
+    }
+
+    /* Biomarker toggles */
+    .toggle-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .toggle-btn {
+      padding: 7px 16px;
+      border: 1.5px solid var(--grey-2);
+      border-radius: 20px;
+      background: var(--white);
+      font-size: 0.84rem;
+      cursor: pointer;
+      color: #475569;
+      transition: all 0.15s;
+    }
+    .toggle-btn.active {
+      background: var(--blue-mid);
+      border-color: var(--blue-mid);
+      color: var(--white);
+      font-weight: 600;
+    }
+
+    /* Stat box */
+    .stat-box {
+      background: var(--blue-light);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 14px;
+    }
+    .stat-box .big-num { font-size: 2rem; font-weight: 800; color: var(--blue-dark); }
+    .stat-box .label { font-size: 0.78rem; color: var(--grey-3); text-transform: uppercase; letter-spacing: 0.7px; }
+    .stat-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+    .stat-inline { font-size: 0.88rem; color: #334155; }
+    .stat-inline strong { color: var(--blue-dark); }
+
+    /* Warning note */
+    .warn-note {
+      background: #fff8e1;
+      border-left: 3px solid var(--amber);
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 0.82rem;
+      color: #7a5c00;
+      margin-top: 12px;
+    }
+    .tip-note {
+      background: var(--teal-light);
+      border-left: 3px solid var(--teal);
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 0.82rem;
+      color: #004d4e;
+      margin-top: 14px;
+    }
+
+    /* HCRU stat grid */
+    .hcru-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+    .hcru-stat {
+      background: var(--grey-1);
+      border-radius: 8px;
+      padding: 14px 16px;
+      border: 1.5px solid var(--grey-2);
+    }
+    .hcru-stat .val { font-size: 1.5rem; font-weight: 800; color: var(--blue-dark); }
+    .hcru-stat .lbl { font-size: 0.75rem; color: var(--grey-3); text-transform: uppercase; letter-spacing: 0.7px; margin-top: 2px; }
+
+    /* Cost bar */
+    .cost-track { height: 28px; background: var(--grey-2); border-radius: 6px; overflow: hidden; margin-bottom: 6px; }
+    .cost-fill { height: 100%; border-radius: 6px; display: flex; align-items: center; padding-left: 10px; font-size: 0.8rem; font-weight: 700; color: var(--white); }
+
+    /* Export screen */
+    .export-shell {
+      max-width: 640px;
+      margin: 48px auto;
+      padding: 0 20px;
+    }
+    .export-card {
+      background: var(--white);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 36px 40px;
+    }
+    .export-card h2 { font-size: 1.3rem; color: var(--blue-dark); margin-bottom: 6px; }
+    .export-card .context-note { font-size: 0.84rem; color: var(--grey-3); margin-bottom: 24px; }
+    .checkbox-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
+    .cb-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.88rem;
+      color: #334155;
+      cursor: pointer;
+    }
+    .cb-item input { accent-color: var(--blue-mid); width: 16px; height: 16px; cursor: pointer; }
+    .export-row { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+    .export-row select {
+      flex: 1;
+      padding: 9px 12px;
+      border: 1.5px solid var(--grey-2);
+      border-radius: 7px;
+      font-size: 0.88rem;
+      color: #334155;
+      background: var(--grey-1);
+    }
+    .btn-export {
+      flex: 1;
+      padding: 14px;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn-export:hover { opacity: 0.88; }
+    .btn-export.primary { background: var(--blue-mid); color: var(--white); }
+    .btn-export.secondary { background: var(--teal); color: var(--white); }
+    .btn-back-exp {
+      display: block;
+      margin: 0 auto 20px;
+      background: none;
+      border: none;
+      color: var(--blue-mid);
+      font-size: 0.9rem;
+      cursor: pointer;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════
+     SCREEN 1 — LANDING
+════════════════════════════════════════ -->
+<div id="landing" class="screen active">
+  <div class="landing-card">
+    <h1>🩺 Insulin Treatment Explorer</h1>
+    <p class="subtitle">Real-World Insights · US Patient Data · 2014–2024</p>
+
+    <p class="section-label">Step 1 — Who do you want to look at?</p>
+    <div class="type-buttons">
+      <button class="type-btn" onclick="selectType(this,'T1D')">
+        <span class="big">1️⃣</span>Type 1 Diabetes<br><small style="font-weight:400;color:#64748b">T1D</small>
+      </button>
+      <button class="type-btn" onclick="selectType(this,'T2D')">
+        <span class="big">2️⃣</span>Type 2 Diabetes<br><small style="font-weight:400;color:#64748b">T2D</small>
+      </button>
+      <button class="type-btn" onclick="selectType(this,'Both')">
+        <span class="big">🔁</span>Both T1D + T2D<br><small style="font-weight:400;color:#64748b">&nbsp;</small>
+      </button>
+    </div>
+
+    <p class="section-label">Step 2 — Which insulin are you interested in?</p>
+    <div class="insulin-select-row">
+      <select id="insulinSelect">
+        <option value="">🔍 Search or select an insulin...</option>
+        <optgroup label="Basal Insulins — Weekly">
+          <option value="Efsitora">Efsitora (once-weekly)</option>
+          <option value="Icodec">Icodec (once-weekly)</option>
+        </optgroup>
+        <optgroup label="Basal Insulins — Daily">
+          <option value="Lantus">Lantus (glargine U-100)</option>
+          <option value="Toujeo">Toujeo (glargine U-300)</option>
+          <option value="Semglee">Semglee (glargine biosimilar)</option>
+          <option value="Rezvoglar">Rezvoglar (glargine biosimilar)</option>
+          <option value="Basaglar">Basaglar / Abasaglar</option>
+          <option value="Degludec">Degludec (Tresiba)</option>
+          <option value="Detemir">Detemir (Levemir)</option>
+          <option value="NPH">NPH Insulin</option>
+        </optgroup>
+        <optgroup label="Combination Basal">
+          <option value="Xultophy">Xultophy (degludec + liraglutide)</option>
+          <option value="Soliqua">Soliqua (glargine + lixisenatide)</option>
+        </optgroup>
+        <optgroup label="Classes">
+          <option value="Any Glargine">Any Glargine</option>
+          <option value="Any Daily Basal">Any Daily Basal</option>
+          <option value="Any Weekly Basal">Any Weekly Basal</option>
+          <option value="Any Basal">Any Basal Insulin</option>
+        </optgroup>
+      </select>
+    </div>
+    <div class="quick-picks">
+      <button class="quick-pick" onclick="quickPick(this,'Lantus')">Lantus</button>
+      <button class="quick-pick" onclick="quickPick(this,'Toujeo')">Toujeo</button>
+      <button class="quick-pick" onclick="quickPick(this,'Degludec')">Degludec</button>
+      <button class="quick-pick" onclick="quickPick(this,'Efsitora')">Efsitora</button>
+      <button class="quick-pick" onclick="quickPick(this,'Any Glargine')">Any Glargine</button>
+      <button class="quick-pick" onclick="quickPick(this,'Any Daily Basal')">Any Daily Basal</button>
+      <button class="quick-pick" onclick="quickPick(this,'Any Weekly Basal')">Any Weekly Basal</button>
+    </div>
+
+    <button class="btn-primary" onclick="goToDashboard()">Explore This Patient Group →</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     SCREEN 2 — MAIN DASHBOARD
+════════════════════════════════════════ -->
+<div id="dashboard" class="screen">
+  <div class="dash-shell">
+
+    <!-- Top bar -->
+    <div class="topbar">
+      <div class="topbar-left">
+        <button class="back-btn" onclick="goTo('landing')">← Back</button>
+        <span class="topbar-title">Insulin Treatment Explorer</span>
+      </div>
+      <div class="topbar-right">
+        <button class="topbar-btn">💾 Save View</button>
+        <button class="topbar-btn" onclick="goTo('export')">📤 Export</button>
+        <button class="topbar-btn">❓ Help</button>
+      </div>
+    </div>
+
+    <!-- Context strip -->
+    <div class="context-strip">
+      Showing:
+      <span id="ctx-type" class="context-pill">Type 2 Diabetes</span>
+      <span id="ctx-insulin" class="context-pill">Lantus</span>
+      <span class="context-pill">US · 2018–2024</span>
+      <span class="context-pill">Claims</span>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <div class="filter-group">
+        <label>Data Source</label>
+        <select><option>Claims</option><option>EHR</option><option>Claims + EHR</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Time Window</label>
+        <select><option>Last 5 years</option><option>Last 3 years</option><option>2014–2024</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Prior Insulin Use</label>
+        <div class="radio-row">
+          <label><input type="radio" name="priorInsulin" checked> First-ever</label>
+          <label><input type="radio" name="priorInsulin"> Switching</label>
+          <label><input type="radio" name="priorInsulin"> Both</label>
+        </div>
+      </div>
+      <div class="filter-group">
+        <label>Prior GLP-1 / Incretin</label>
+        <div class="radio-row">
+          <label><input type="radio" name="glp1" checked> None</label>
+          <label><input type="radio" name="glp1"> Any</label>
+          <label><input type="radio" name="glp1"> Specific</label>
+        </div>
+      </div>
+      <div class="filter-group">
+        <label>Key Conditions</label>
+        <div class="radio-row">
+          <label><input type="checkbox"> Kidney disease</label>
+          <label><input type="checkbox"> Heart failure</label>
+          <label><input type="checkbox"> ASCVD</label>
+        </div>
+      </div>
+      <button class="btn-update">Update Results</button>
+    </div>
+
+    <!-- Snapshot banner -->
+    <div class="snapshot">
+      <div class="snap-item">
+        <div class="snap-value">47,821</div>
+        <div class="snap-label">👥 Patients</div>
+      </div>
+      <div class="snap-divider"></div>
+      <div class="snap-item">
+        <div class="snap-value">58 yrs</div>
+        <div class="snap-label">📅 Avg Age</div>
+      </div>
+      <div class="snap-divider"></div>
+      <div class="snap-item">
+        <div class="snap-value">51%</div>
+        <div class="snap-label">👩 Female</div>
+      </div>
+      <div class="snap-divider"></div>
+      <div class="snap-item">
+        <div class="snap-value">8.9%</div>
+        <div class="snap-label">🩸 Avg HbA1c</div>
+      </div>
+      <div class="snap-divider"></div>
+      <div class="snap-item">
+        <div class="snap-value">34%</div>
+        <div class="snap-label">💊 On GLP-1</div>
+      </div>
+      <div class="snap-divider"></div>
+      <div class="snap-item">
+        <div class="snap-value">42%</div>
+        <div class="snap-label">🏥 Medicare</div>
+      </div>
+    </div>
+
+    <!-- Tab nav -->
+    <div class="tab-nav">
+      <button class="tab-btn active" onclick="switchTab('tab-who',this)">👤 Who Are They?</button>
+      <button class="tab-btn" onclick="switchTab('tab-labs',this)">🩸 Lab Values</button>
+      <button class="tab-btn" onclick="switchTab('tab-meds',this)">💊 Medications</button>
+      <button class="tab-btn" onclick="switchTab('tab-care',this)">🏥 Care Use & Costs</button>
+    </div>
+
+    <!-- ── TAB 1: WHO ARE THEY ── -->
+    <div id="tab-who" class="tab-panel active">
+      <div class="grid-2">
+
+        <!-- Age -->
+        <div class="card">
+          <div class="card-title">Age Breakdown</div>
+          <div class="bar-list">
+            <div class="bar-row"><span class="bar-label narrow">19–25</span><div class="bar-track"><div class="bar-fill" style="width:2%"></div></div><span class="bar-pct">2%</span></div>
+            <div class="bar-row"><span class="bar-label narrow">26–44</span><div class="bar-track"><div class="bar-fill" style="width:11%"></div></div><span class="bar-pct">11%</span></div>
+            <div class="bar-row"><span class="bar-label narrow">45–64</span><div class="bar-track"><div class="bar-fill" style="width:38%"></div></div><span class="bar-pct">38%</span></div>
+            <div class="bar-row"><span class="bar-label narrow">65–74</span><div class="bar-track"><div class="bar-fill" style="width:31%"></div></div><span class="bar-pct">31%</span></div>
+            <div class="bar-row"><span class="bar-label narrow">75–84</span><div class="bar-track"><div class="bar-fill" style="width:14%"></div></div><span class="bar-pct">14%</span></div>
+            <div class="bar-row"><span class="bar-label narrow">85+</span><div class="bar-track"><div class="bar-fill" style="width:4%"></div></div><span class="bar-pct">4%</span></div>
+          </div>
+        </div>
+
+        <!-- Region -->
+        <div class="card">
+          <div class="card-title">Where Do They Live?</div>
+          <div class="map-placeholder">
+            <span class="map-icon">🗺️</span>
+            <span>US Region Map — connect to mapping library</span>
+          </div>
+          <div class="region-list">
+            <span class="region-pill">South 38%</span>
+            <span class="region-pill">Northeast 22%</span>
+            <span class="region-pill">Midwest 21%</span>
+            <span class="region-pill">West 19%</span>
+          </div>
+        </div>
+
+        <!-- Payer -->
+        <div class="card">
+          <div class="card-title">Who Pays for Their Care?</div>
+          <div class="bar-list">
+            <div class="bar-row"><span class="bar-label narrow">Medicare</span><div class="bar-track"><div class="bar-fill amber" style="width:42%"></div></div><span class="bar-pct">42%</span></div>
+            <div class="bar-row"><span class="bar-label narrow">Commercial</span><div class="bar-track"><div class="bar-fill" style="width:38%"></div></div><span class="bar-pct">38%</span></div>
+            <div class="bar-row"><span class="bar-label narrow">Medicaid</span><div class="bar-track"><div class="bar-fill teal" style="width:14%"></div></div><span class="bar-pct">14%</span></div>
+            <div class="bar-row"><span class="bar-label narrow">Other</span><div class="bar-track"><div class="bar-fill red" style="width:6%"></div></div><span class="bar-pct">6%</span></div>
+          </div>
+        </div>
+
+        <!-- Race / Ethnicity -->
+        <div class="card">
+          <div class="card-title">Race &amp; Ethnicity</div>
+          <div class="bar-list">
+            <div class="bar-row"><span class="bar-label">NH White</span><div class="bar-track"><div class="bar-fill" style="width:52%"></div></div><span class="bar-pct">52%</span></div>
+            <div class="bar-row"><span class="bar-label">NH Black</span><div class="bar-track"><div class="bar-fill teal" style="width:18%"></div></div><span class="bar-pct">18%</span></div>
+            <div class="bar-row"><span class="bar-label">Hispanic</span><div class="bar-track"><div class="bar-fill amber" style="width:16%"></div></div><span class="bar-pct">16%</span></div>
+            <div class="bar-row"><span class="bar-label">NH Asian</span><div class="bar-track"><div class="bar-fill" style="width:8%"></div></div><span class="bar-pct">8%</span></div>
+            <div class="bar-row"><span class="bar-label">Other/Unknown</span><div class="bar-track"><div class="bar-fill red" style="width:6%"></div></div><span class="bar-pct">6%</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Comorbidities -->
+      <div class="card">
+        <div class="card-title">Most Common Other Conditions</div>
+        <div class="bar-list">
+          <div class="bar-row"><span class="bar-label">High blood pressure</span><div class="bar-track"><div class="bar-fill" style="width:72%"></div></div><span class="bar-pct">72%</span></div>
+          <div class="bar-row"><span class="bar-label">High cholesterol</span><div class="bar-track"><div class="bar-fill" style="width:58%"></div></div><span class="bar-pct">58%</span></div>
+          <div class="bar-row"><span class="bar-label">Kidney disease (any)</span><div class="bar-track"><div class="bar-fill teal" style="width:31%"></div></div><span class="bar-pct">31%</span></div>
+          <div class="bar-row"><span class="bar-label">Heart failure</span><div class="bar-track"><div class="bar-fill amber" style="width:22%"></div></div><span class="bar-pct">22%</span></div>
+          <div class="bar-row"><span class="bar-label">Heart disease / ASCVD</span><div class="bar-track"><div class="bar-fill amber" style="width:19%"></div></div><span class="bar-pct">19%</span></div>
+          <div class="bar-row"><span class="bar-label">Diabetic nerve damage</span><div class="bar-track"><div class="bar-fill red" style="width:15%"></div></div><span class="bar-pct">15%</span></div>
+          <div class="bar-row"><span class="bar-label">Diabetic eye disease</span><div class="bar-track"><div class="bar-fill red" style="width:12%"></div></div><span class="bar-pct">12%</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB 2: LAB VALUES ── -->
+    <div id="tab-labs" class="tab-panel">
+      <div style="margin-bottom:18px;">
+        <div class="section-label" style="margin-bottom:8px;">Select Measure</div>
+        <div class="toggle-row">
+          <button class="toggle-btn active" onclick="toggleBtn(this)">HbA1c</button>
+          <button class="toggle-btn" onclick="toggleBtn(this)">Weight</button>
+          <button class="toggle-btn" onclick="toggleBtn(this)">BMI</button>
+          <button class="toggle-btn" onclick="toggleBtn(this)">Kidney Function (eGFR)</button>
+          <button class="toggle-btn" onclick="toggleBtn(this)">Blood Pressure</button>
+        </div>
+        <div class="section-label" style="margin-bottom:8px; margin-top:16px;">Time Point</div>
+        <div class="toggle-row">
+          <button class="toggle-btn active" onclick="toggleBtn(this)">Before starting insulin</button>
+          <button class="toggle-btn" onclick="toggleBtn(this)">3 months</button>
+          <button class="toggle-btn" onclick="toggleBtn(this)">6 months</button>
+          <button class="toggle-btn" onclick="toggleBtn(this)">9 months</button>
+          <button class="toggle-btn" onclick="toggleBtn(this)">12 months</button>
+          <button class="toggle-btn" onclick="toggleBtn(this)">2 years</button>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">HbA1c Before Starting Insulin</div>
+          <div class="stat-box">
+            <div class="big-num">8.9%</div>
+            <div class="label">Average HbA1c</div>
+          </div>
+          <div class="stat-row">
+            <span class="stat-inline">Range: <strong>5.2% – 18.4%</strong></span>
+            <span class="stat-inline">Patients with a reading: <strong>81%</strong></span>
+          </div>
+          <div class="bar-list">
+            <div class="bar-row"><span class="bar-label narrow">&lt;7.0%</span><div class="bar-track"><div class="bar-fill green" style="width:14%"></div></div><span class="bar-pct">14%</span></div>
+            <div class="bar-row"><span class="bar-label narrow">7–8%</span><div class="bar-track"><div class="bar-fill green" style="width:22%"></div></div><span class="bar-pct">22%</span></div>
+            <div class="bar-row"><span class="bar-label narrow">8–9%</span><div class="bar-track"><div class="bar-fill amber" style="width:26%"></div></div><span class="bar-pct">26%</span></div>
+            <div class="bar-row"><span class="bar-label narrow">9–10%</span><div class="bar-track"><div class="bar-fill amber" style="width:20%"></div></div><span class="bar-pct">20%</span></div>
+            <div class="bar-row"><span class="bar-label narrow">10–11%</span><div class="bar-track"><div class="bar-fill red" style="width:11%"></div></div><span class="bar-pct">11%</span></div>
+            <div class="bar-row"><span class="bar-label narrow">11%+</span><div class="bar-track"><div class="bar-fill red" style="width:7%"></div></div><span class="bar-pct">7%</span></div>
+          </div>
+          <div class="warn-note">⚠️ 19% of patients had no HbA1c reading in the 90 days before starting insulin.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">How Did HbA1c Change Over Time?</div>
+          <div class="chart-placeholder">
+            <span style="font-size:1.8rem">📈</span>
+            <span>Line chart: Average HbA1c at each time point</span>
+            <span style="font-size:0.78rem">Connect to Chart.js or Recharts</span>
+          </div>
+          <div class="tip-note">💡 Data shown only for patients with a reading at each time point. Use filters above to compare by age group, payer, or kidney disease status.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB 3: MEDICATIONS ── -->
+    <div id="tab-meds" class="tab-panel">
+      <div style="margin-bottom:18px;">
+        <div class="toggle-row">
+          <button class="toggle-btn active" onclick="toggleBtn(this)">Before starting insulin</button>
+          <button class="toggle-btn" onclick="toggleBtn(this)">After starting insulin</button>
+          <button class="toggle-btn" onclick="toggleBtn(this)">Compare both</button>
+        </div>
+        <div style="margin-top:10px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+          <div class="filter-group">
+            <label>Time Period</label>
+            <select><option>12 months</option><option>6 months</option><option>3 months</option><option>24 months</option></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">GLP-1 / Incretin Therapies</div>
+          <div class="bar-list">
+            <div class="bar-row"><span class="bar-label">Any GLP-1</span><div class="bar-track"><div class="bar-fill" style="width:34%"></div></div><span class="bar-pct">34%</span></div>
+            <div class="bar-row"><span class="bar-label">Tirzepatide</span><div class="bar-track"><div class="bar-fill teal" style="width:12%"></div></div><span class="bar-pct">12%</span></div>
+            <div class="bar-row"><span class="bar-label">Semaglutide (inj)</span><div class="bar-track"><div class="bar-fill teal" style="width:11%"></div></div><span class="bar-pct">11%</span></div>
+            <div class="bar-row"><span class="bar-label">Other GLP-1</span><div class="bar-track"><div class="bar-fill teal" style="width:11%"></div></div><span class="bar-pct">11%</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Oral Diabetes Medications</div>
+          <div class="bar-list">
+            <div class="bar-row"><span class="bar-label">Metformin</span><div class="bar-track"><div class="bar-fill" style="width:61%"></div></div><span class="bar-pct">61%</span></div>
+            <div class="bar-row"><span class="bar-label">SGLT-2 inhibitor</span><div class="bar-track"><div class="bar-fill teal" style="width:28%"></div></div><span class="bar-pct">28%</span></div>
+            <div class="bar-row"><span class="bar-label">Sulfonylurea</span><div class="bar-track"><div class="bar-fill amber" style="width:19%"></div></div><span class="bar-pct">19%</span></div>
+            <div class="bar-row"><span class="bar-label">DPP-4 inhibitor</span><div class="bar-track"><div class="bar-fill amber" style="width:17%"></div></div><span class="bar-pct">17%</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Other Insulins Used</div>
+          <div class="bar-list">
+            <div class="bar-row"><span class="bar-label">Any bolus insulin</span><div class="bar-track"><div class="bar-fill" style="width:21%"></div></div><span class="bar-pct">21%</span></div>
+            <div class="bar-row"><span class="bar-label">Bolus + basal combo</span><div class="bar-track"><div class="bar-fill teal" style="width:14%"></div></div><span class="bar-pct">14%</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Still on Lantus at…</div>
+          <div class="bar-list">
+            <div class="bar-row"><span class="bar-label narrow">3 months</span><div class="bar-track"><div class="bar-fill green" style="width:74%"></div></div><span class="bar-pct">74%</span></div>
+            <div class="bar-row"><span class="bar-label narrow">6 months</span><div class="bar-track"><div class="bar-fill green" style="width:63%"></div></div><span class="bar-pct">63%</span></div>
+            <div class="bar-row"><span class="bar-label narrow">12 months</span><div class="bar-track"><div class="bar-fill amber" style="width:52%"></div></div><span class="bar-pct">52%</span></div>
+            <div class="bar-row"><span class="bar-label narrow">24 months</span><div class="bar-track"><div class="bar-fill red" style="width:41%"></div></div><span class="bar-pct">41%</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB 4: CARE USE & COSTS ── -->
+    <div id="tab-care" class="tab-panel">
+      <div style="margin-bottom:18px; display:flex; gap:16px; flex-wrap:wrap; align-items:flex-end;">
+        <div class="filter-group">
+          <label>View</label>
+          <div class="toggle-row" style="margin:0">
+            <button class="toggle-btn active" onclick="toggleBtn(this)">Before insulin</button>
+            <button class="toggle-btn" onclick="toggleBtn(this)">After insulin</button>
+            <button class="toggle-btn" onclick="toggleBtn(this)">Compare both</button>
+          </div>
+        </div>
+        <div class="filter-group">
+          <label>Period</label>
+          <select><option>12 months</option><option>6 months</option><option>3 months</option></select>
+        </div>
+        <div class="filter-group">
+          <label>Visit Type</label>
+          <div class="toggle-row" style="margin:0">
+            <button class="toggle-btn active" onclick="toggleBtn(this)">All reasons</button>
+            <button class="toggle-btn" onclick="toggleBtn(this)">Diabetes-related only</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Average Visits per Year</div>
+          <div class="hcru-grid">
+            <div class="hcru-stat"><div class="val">8.2</div><div class="lbl">Any doctor</div></div>
+            <div class="hcru-stat"><div class="val">4.1</div><div class="lbl">Primary care</div></div>
+            <div class="hcru-stat"><div class="val">2.3</div><div class="lbl">Endocrinologist</div></div>
+            <div class="hcru-stat"><div class="val">0.6</div><div class="lbl">ER visits</div></div>
+            <div class="hcru-stat"><div class="val">0.3</div><div class="lbl">Hospital stays</div></div>
+            <div class="hcru-stat"><div class="val">1.4</div><div class="lbl">NP / PA</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Where Did They Get Care?</div>
+          <div class="bar-list">
+            <div class="bar-row"><span class="bar-label">Doctor's office</span><div class="bar-track"><div class="bar-fill green" style="width:94%"></div></div><span class="bar-pct">94%</span></div>
+            <div class="bar-row"><span class="bar-label">Endocrinologist</span><div class="bar-track"><div class="bar-fill" style="width:31%"></div></div><span class="bar-pct">31%</span></div>
+            <div class="bar-row"><span class="bar-label">NP / PA</span><div class="bar-track"><div class="bar-fill teal" style="width:54%"></div></div><span class="bar-pct">54%</span></div>
+            <div class="bar-row"><span class="bar-label">Hospital stay</span><div class="bar-track"><div class="bar-fill amber" style="width:18%"></div></div><span class="bar-pct">18%</span></div>
+            <div class="bar-row"><span class="bar-label">Emergency room</span><div class="bar-track"><div class="bar-fill red" style="width:16%"></div></div><span class="bar-pct">16%</span></div>
+            <div class="bar-row"><span class="bar-label">Dietician</span><div class="bar-track"><div class="bar-fill" style="width:14%"></div></div><span class="bar-pct">14%</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:0">
+        <div class="card-title">Average Annual Costs per Patient (2026 USD)</div>
+        <div style="margin-bottom:8px;">
+          <div style="font-size:0.82rem; color:var(--grey-3); margin-bottom:6px;">Total healthcare spend</div>
+          <div class="cost-track">
+            <div class="cost-fill" style="width:100%; background: linear-gradient(90deg, var(--blue-dark) 68%, var(--teal) 68%);">
+              $24,180
+            </div>
+          </div>
+          <div style="display:flex; gap:8px; margin-bottom:4px; font-size:0.8rem; color:var(--grey-3);">
+            <span style="color:var(--blue-dark);">■</span> Medical costs &nbsp;
+            <span style="color:var(--teal);">■</span> Prescription costs
+          </div>
+        </div>
+
+        <div style="margin-top:16px;">
+          <div style="font-size:0.82rem; color:var(--grey-3); margin-bottom:6px;">Medical costs only</div>
+          <div class="cost-track">
+            <div class="cost-fill" style="width:68%; background:var(--blue-dark);">$16,340</div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;">
+          <div style="font-size:0.82rem; color:var(--grey-3); margin-bottom:6px;">Prescription costs only</div>
+          <div class="cost-track">
+            <div class="cost-fill" style="width:32%; background:var(--teal);">$7,840</div>
+          </div>
+        </div>
+
+        <div class="tip-note" style="margin-top:16px;">
+          ⓘ Costs shown are per-patient averages, adjusted to 2026 USD. Use the export panel for median and full distribution data.
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end dash-shell -->
+</div><!-- end dashboard screen -->
+
+<!-- ════════════════════════════════════════
+     SCREEN 3 — EXPORT
+════════════════════════════════════════ -->
+<div id="export" class="screen">
+  <div style="background:var(--blue-dark); padding:14px 28px; display:flex; align-items:center; gap:16px;">
+    <button class="back-btn" onclick="goTo('dashboard')">← Back to Dashboard</button>
+    <span style="color:var(--white); font-weight:700;">Export Your Findings</span>
+  </div>
+
+  <div class="export-shell">
+    <button class="btn-back-exp" onclick="goTo('dashboard')">← Back to Dashboard</button>
+
+    <div class="export-card">
+      <h2>📤 Save or Share Your Findings</h2>
+      <p class="context-note">
+        Current view: <strong>Type 2 Diabetes · Lantus · Claims · 2018–2024 · No prior GLP-1</strong><br>
+        <strong>47,821 patients</strong> matched your filters.
+      </p>
+
+      <p class="section-label">What would you like to include?</p>
+      <div class="checkbox-grid">
+        <label class="cb-item"><input type="checkbox" checked> 👤 Demographics</label>
+        <label class="cb-item"><input type="checkbox" checked> 🩸 Lab Values</label>
+        <label class="cb-item"><input type="checkbox" checked> 💊 Medications</label>
+        <label class="cb-item"><input type="checkbox" checked> 🏥 Care Visits</label>
+        <label class="cb-item"><input type="checkbox" checked> 💰 Costs</label>
+        <label class="cb-item"><input type="checkbox"> 🔧 Technical Flags</label>
+        <label class="cb-item"><input type="checkbox"> 📋 Full Codebook</label>
+        <label class="cb-item"><input type="checkbox"> 📊 Adherence Data</label>
+      </div>
+
+      <p class="section-label">Export format</p>
+      <div class="export-row" style="margin-bottom:16px;">
+        <select>
+          <option>Summary stats → PDF</option>
+          <option>Summary stats → PowerPoint</option>
+          <option>Patient-level dataset → CSV</option>
+          <option>Full variable codebook → Excel</option>
+        </select>
+        <select>
+          <option>Enrollment gap: 30 days</option>
+          <option>Enrollment gap: 15 days</option>
+          <option>Enrollment gap: 0 days</option>
+        </select>
+      </div>
+
+      <div class="export-row">
+        <button class="btn-export primary" onclick="alert('Download started!')">📥 Download Now</button>
+        <button class="btn-export secondary" onclick="alert('Email sent!')">📧 Email to Myself</button>
+      </div>
+
+      <div class="tip-note">
+        💡 Patient-level exports are fully de-identified. All costs are inflation-adjusted to 2026 USD.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════ -->
+<script>
+  // ── State ──
+  let selectedType    = '';
+  let selectedInsulin = '';
+
+  // ── Screen navigation ──
+  function goTo(screenId) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(screenId).classList.add('active');
+    window.scrollTo(0, 0);
+  }
+
+  // ── Landing: diabetes type selection ──
+  function selectType(btn, type) {
+    document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedType = type;
+  }
+
+  // ── Landing: quick-pick insulin ──
+  function quickPick(btn, insulin) {
+    document.querySelectorAll('.quick-pick').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedInsulin = insulin;
+    document.getElementById('insulinSelect').value = insulin;
+  }
+
+  // ── Landing: go to dashboard ──
+  function goToDashboard() {
+    const insulin = document.getElementById('insulinSelect').value || selectedInsulin;
+    if (!selectedType) {
+      alert('Please select a diabetes type (T1D, T2D, or Both).');
+      return;
+    }
+    if (!insulin) {
+      alert('Please select an insulin product or class.');
+      return;
+    }
+    // Update context strip
+    const typeLabel = selectedType === 'T1D' ? 'Type 1 Diabetes'
+                    : selectedType === 'T2D' ? 'Type 2 Diabetes'
+                    : 'T1D + T2D';
+    document.getElementById('ctx-type').textContent    = typeLabel;
+    document.getElementById('ctx-insulin').textContent = insulin;
+    goTo('dashboard');
+  }
+
+  // ── Tab switching ──
+  function switchTab(panelId, btn) {
+    // Hide all panels
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    // Deactivate all tab buttons
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    // Activate selected
+    document.getElementById(panelId).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  // ── Toggle button groups ──
+  function toggleBtn(btn) {
+    // Only deselect siblings in the same .toggle-row
+    const row = btn.closest('.toggle-row');
+    if (row) {
+      row.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+    }
+    btn.classList.add('active');
+  }
+</script>
+
+</body>
+</html>
